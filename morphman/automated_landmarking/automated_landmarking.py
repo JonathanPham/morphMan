@@ -97,7 +97,7 @@ def read_command_line():
     parser.add_argument("-ma", "--mark-arteries", type=str2bool, default=True,
                         help="Let user mark diverging arteries (Ophthalmic & Posterior communicating) manually. " +
                              "Otherwise a automated and naive method is run, based off the complete centerlines.")
-    parser.add_argument("-mo", "--mark-arteries", type=str2bool, default=True,
+    parser.add_argument("-mo", "--mark-outlets", type=str2bool, default=True,
                         help="Let user mark relevant outlets used to compute the ICA centerline. " +
                              "Otherwise a automated and naive method is run, based off centerline endpoint distances.")
     args = parser.parse_args()
