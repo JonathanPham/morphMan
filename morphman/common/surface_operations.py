@@ -806,7 +806,7 @@ def find_relevant_outlets(outlets, base_path):
     return relevant_outlets
 
 
-def extract_ica_centerline(base_path, input_filepath, resampling_step, mark_relevant_outlets_manually,
+def extract_ica_centerline(base_path, input_filepath, resampling_step, mark_relevant_outlets_manually=True,
                            relevant_outlets=None):
     """
     Extract a centerline from the inlet to the first branch.
