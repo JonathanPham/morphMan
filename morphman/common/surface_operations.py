@@ -750,6 +750,62 @@ def prepare_surface(base_path, surface_path):
     return open_surface, capped_surface
 
 
+def find_relevant_outlets(outlets, base_path):
+    """
+    Extract relevant outlets of the
+    input surface model.
+
+    Args:
+        outlets (list): List of outlet points
+        surface(vtkPolyData): Surface model.
+        base_path (str): Location of info-file.
+
+    Returns:
+        relevant_outlets (list): List of relevant outlet IDs.
+    """
+    outlets_stacked = np.vstack(outlets).reshape(-1, 3)
+
+    relevant_outlet1 = outlets_stacked[0]
+    relevant_outlet2 = outlets_stacked[1]
+
+    # If more than 5 outlets: Remove two with least area
+    outlet_limit = 5
+    number_of_outlets = len(outlets_stacked)
+    if number_of_outlets >= outlet_limit:
+        filtered_outlets = np.zeros((number_of_outlets - 2, 3))
+        info = get_parameters(base_path)
+        areas = [info["outlet%s_area" % i] for i in range(number_of_outlets)]
+        largest_areas = sorted(areas)[2:]
+        k = 0
+        for i in range(number_of_outlets):
+            if info["outlet%s_area" % i] in largest_areas:
+                filtered_outlets[k] = outlets_stacked[i]
+                k += 1
+
+        outlets_stacked = filtered_outlets
+
+    # Find points most distal to each other
+    max_dist = get_distance(relevant_outlet1, relevant_outlet2)
+    for i in range(0, len(outlets_stacked) - 1):
+        for j in range(i + 1, len(outlets_stacked)):
+            tmp_dist = get_distance(outlets_stacked[i], outlets_stacked[j])
+            if max_dist < tmp_dist:
+                max_dist = tmp_dist
+                relevant_outlet1 = outlets_stacked[i]
+                relevant_outlet2 = outlets_stacked[j]
+
+    relevant_outlets = [relevant_outlet1, relevant_outlet2]
+
+    # Save info
+    info = {}
+    if base_path is not None:
+        for i in range(len(relevant_outlets)):
+            info["relevant_outlet_%d" % i] = relevant_outlets[i].tolist()
+        write_parameters(info, base_path)
+
+    return relevant_outlets
+
+
 def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_outlets=None):
     """
     Extract a centerline from the inlet to the first branch.
@@ -768,12 +824,18 @@ def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_
     ica_centerline_path = base_path + "_ica.vtp"
     centerline_relevant_outlets_path = base_path + "_centerline_relevant_outlets_landmark.vtp"
 
-    if path.exists(ica_centerline_path):
-        return read_polydata(ica_centerline_path)
-
     # Prepare surface and identify in/outlets
     surface, capped_surface = prepare_surface(base_path, input_filepath)
     inlet, outlets = get_inlet_and_outlet_centers(surface, base_path)
+
+    # Compute / import centerlines
+    if not path.exists(centerlines_path):
+        compute_centerlines(inlet, outlets, centerlines_path, capped_surface, resampling=resampling_step, smooth=False,
+                            base_path=base_path)
+
+    # Return ICA centerline if it exists
+    if path.exists(ica_centerline_path):
+        return read_polydata(ica_centerline_path)
 
     if relevant_outlets is not None:
         outlet1, outlet2 = relevant_outlets[:3], relevant_outlets[3:]
@@ -783,12 +845,14 @@ def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_
         outlet1 = capped_surface.GetPoint(id1)
         outlet2 = capped_surface.GetPoint(id2)
     else:
-        outlet1, outlet2 = get_relevant_outlets(capped_surface, base_path)
-    outlets, outlet1, outlet2 = get_sorted_outlets(outlets, outlet1, outlet2, base_path)
+        # TODO: Add as input parameter?
+        find_outlets = True
+        if find_outlets:
+            outlet1, outlet2 = find_relevant_outlets(outlets, base_path)
+        else:
+            outlet1, outlet2 = get_relevant_outlets(capped_surface, base_path)
 
-    # Compute / import centerlines
-    compute_centerlines(inlet, outlets, centerlines_path, capped_surface, resampling=resampling_step, smooth=False,
-                        base_path=base_path)
+    outlets, outlet1, outlet2 = get_sorted_outlets(outlets, outlet1, outlet2, base_path)
 
     # Get relevant centerlines
     centerline_relevant_outlets = compute_centerlines(inlet, outlet1 + outlet2, centerline_relevant_outlets_path,
