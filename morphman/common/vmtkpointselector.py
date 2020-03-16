@@ -52,6 +52,7 @@ class vmtkPickPointSeedSelector(vmtkSeedSelector):
         vmtkSeedSelector.__init__(self)
         self.PickedSeedIds = vtk.vtkIdList()
         self.PickedSeeds = vtk.vtkPolyData()
+        self.NoPointSelection = False
         self.vmtkRenderer = None
         self.OwnRenderer = 0
         self.Script = None
@@ -139,11 +140,17 @@ class vmtkPickPointSeedSelector(vmtkSeedSelector):
         guiText = VtkText(self.text)
         self.vmtkRenderer.Renderer.AddActor(guiText.text)
 
-        any = 0
-        while any == 0:
+        while True:
             self.InitializeSeeds()
             self.vmtkRenderer.Render()
-            any = self.PickedSeedIds.GetNumberOfIds()
+            number_of_selected_points = self.PickedSeedIds.GetNumberOfIds()
+
+            if number_of_selected_points > 0:
+                break
+
+            if self.NoPointSelection and number_of_selected_points == 0:
+                break
+
         self._TargetSeedIds.DeepCopy(self.PickedSeedIds)
 
         if self.OwnRenderer:
