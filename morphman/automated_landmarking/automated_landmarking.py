@@ -14,7 +14,7 @@ from morphman.automated_landmarking import *
 
 def automated_landmarking(input_filepath, approximation_method, resampling_step, algorithm, nknots, smooth_line,
                           smoothing_factor_curv, smoothing_factor_torsion, iterations, coronal_axis,
-                          mark_diverging_arteries_manually):
+                          mark_diverging_arteries_manually, mark_relevant_outlets_manually):
     """
     Compute carotid siphon and perform landmarking.
 
@@ -30,11 +30,12 @@ def automated_landmarking(input_filepath, approximation_method, resampling_step,
         iterations (int): Number of smoothing iterations.
         coronal_axis (str) : Axis determining coronal coordinate (Bogunovic, Kjeldsberg)
         mark_diverging_arteries_manually (boolean): Mark Ophthalmic & Posterior communicating artery manually (Kjeldsberg)
+        mark_relevant_outlets_manually (boolean): Marks relevant outlets manually if True
     """
     base_path = get_path_names(input_filepath)
 
     # Extract carotid siphon
-    ica_centerline = extract_ica_centerline(base_path, input_filepath, resampling_step)
+    ica_centerline = extract_ica_centerline(base_path, input_filepath, resampling_step, mark_relevant_outlets_manually)
 
     # Check axial coordinate of centerline, reverse if needed
     ica_centerline = orient_centerline(ica_centerline)
@@ -96,13 +97,16 @@ def read_command_line():
     parser.add_argument("-ma", "--mark-arteries", type=str2bool, default=True,
                         help="Let user mark diverging arteries (Ophthalmic & Posterior communicating) manually. " +
                              "Otherwise a automated and naive method is run, based off the complete centerlines.")
+    parser.add_argument("-mo", "--mark-arteries", type=str2bool, default=True,
+                        help="Let user mark relevant outlets used to compute the ICA centerline. " +
+                             "Otherwise a automated and naive method is run, based off centerline endpoint distances.")
     args = parser.parse_args()
 
     return dict(input_filepath=args.ifile, approximation_method=args.approximation_method,
                 coronal_axis=args.coronal_axis, resampling_step=args.resampling_step, algorithm=args.algorithm,
                 nknots=args.nknots, smooth_line=args.smooth_line, smoothing_factor_curv=args.smoothing_factor_curvature,
                 smoothing_factor_torsion=args.smoothing_factor_torsion, iterations=args.iterations,
-                mark_diverging_arteries_manually=args.mark_arteries)
+                mark_diverging_arteries_manually=args.mark_arteries, mark_relevant_outlets_manually=args.mark_outlets)
 
 
 if __name__ == '__main__':

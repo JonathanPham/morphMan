@@ -806,7 +806,8 @@ def find_relevant_outlets(outlets, base_path):
     return relevant_outlets
 
 
-def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_outlets=None):
+def extract_ica_centerline(base_path, input_filepath, resampling_step, mark_relevant_outlets_manually,
+                           relevant_outlets=None):
     """
     Extract a centerline from the inlet to the first branch.
 
@@ -814,12 +815,12 @@ def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_
         base_path (str): Path to the case folder.
         input_filepath (str): Path to the original model.
         resampling_step (float): Resampling step length of the extracted centerline.
+        mark_relevant_outlets_manually (boolean): Marks relevant outlets manually if True
         relevant_outlets (ndarray): Array containing points corresponding to outlets
 
     Returns:
         centerline (vtkPolyData): Extracted centerline.
     """
-    # TODO: Extract ICA centerline by comparing daughter branch cross-section areas
     centerlines_path = base_path + "_centerline.vtp"
     ica_centerline_path = base_path + "_ica.vtp"
     centerline_relevant_outlets_path = base_path + "_centerline_relevant_outlets_landmark.vtp"
@@ -845,12 +846,11 @@ def extract_ica_centerline(base_path, input_filepath, resampling_step, relevant_
         outlet1 = capped_surface.GetPoint(id1)
         outlet2 = capped_surface.GetPoint(id2)
     else:
-        # TODO: Add as input parameter?
-        find_outlets = True
-        if find_outlets:
-            outlet1, outlet2 = find_relevant_outlets(outlets, base_path)
-        else:
+        if mark_relevant_outlets_manually:
             outlet1, outlet2 = get_relevant_outlets(capped_surface, base_path)
+        else:
+            print("-- Finding relevant outlets automatically. Discrepancies may occur.")
+            outlet1, outlet2 = find_relevant_outlets(outlets, base_path)
 
     outlets, outlet1, outlet2 = get_sorted_outlets(outlets, outlet1, outlet2, base_path)
 
