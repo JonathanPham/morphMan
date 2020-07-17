@@ -5,8 +5,8 @@
 ##      the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
 ##      PURPOSE.  See the above copyright notices for more information.
 
-from scipy.signal import argrelextrema
 from scipy.ndimage.filters import gaussian_filter
+from scipy.signal import argrelextrema
 
 # Local import
 from morphman.common import *
@@ -193,14 +193,13 @@ def map_landmarks(landmarks, centerline, algorithm):
         landmark = landmarks[key]
         landmark_id = locator.FindClosestPoint(landmark)
 
-        if algorithm in ["kjeldsberg", "piccinelli"]:
-            key = "C%s" if algorithm == "kjeldsberg" else "bend%s"
+        if algorithm in "piccinelli":
             if landmark_id in landmark_ids:
                 continue  # Skip for duplicate landmarking point
             else:
                 landmark_ids.append(landmark_id)
                 landmark_mapped = centerline.GetPoint(landmark_id)
-                mapped_landmarks[key % k] = landmark_mapped
+                mapped_landmarks["bend%s" % k] = landmark_mapped
                 k += 1
 
         if algorithm == "bogunovic":
@@ -211,7 +210,7 @@ def map_landmarks(landmarks, centerline, algorithm):
     return mapped_landmarks
 
 
-def create_particles(base_path, algorithm, method, r=0.1, factor=1.2, it=100):
+def create_particles(base_path, algorithm, method):
     """
     Create a file with points where bends are located and
     remove points from manifest
@@ -223,10 +222,7 @@ def create_particles(base_path, algorithm, method, r=0.1, factor=1.2, it=100):
     """
 
     info_filepath = base_path + "_info.json"
-    filename_all_landmarks = base_path + "_landmark_%s_%s_r_%.2f_f_%.1f_i_%i.particles" % (
-       algorithm, method, r, factor, it)
-    # filename_all_landmarks = base_path + "_landmark_%s_%s_r_%.3f.particles" % (algorithm, method, r)
-    #filename_all_landmarks = base_path + "_landmark_%s_%s.particles" % (algorithm, method)
+    filename_all_landmarks = base_path + "_landmark_%s_%s.particles" % (algorithm, method)
     print("Saving all landmarks to: %s" % filename_all_landmarks)
 
     output_all = open(filename_all_landmarks, "w")
@@ -241,15 +237,8 @@ def create_particles(base_path, algorithm, method, r=0.1, factor=1.2, it=100):
                 output_all.write(point + "\n")
 
         elif algorithm == "piccinelli":
-            if key[0] == "b":
-                p = landmarked_points[key]
-                point = "%s %s %s" % (p[0], p[1], p[2])
-                output_all.write(point + "\n")
-
-        elif algorithm == "kjeldsberg":
-            if key[0] == "C":
-                p = landmarked_points[key]
-                point = "%s %s %s" % (p[0], p[1], p[2])
-                output_all.write(point + "\n")
+            p = landmarked_points[key]
+            point = "%s %s %s" % (p[0], p[1], p[2])
+            output_all.write(point + "\n")
 
     output_all.close()
